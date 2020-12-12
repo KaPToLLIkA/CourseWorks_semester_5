@@ -25,7 +25,7 @@ entry::entry(uint64_t max_id, uint64_t min_id) :
 }
 
 entry::entry() :
-	id(rand() % (MAX_ID + 1 - MIN_ID) + MIN_ID)
+	id(rand() % (MAX_ID - MIN_ID) + MIN_ID)
 {
 	rand_fill_data();
 }
@@ -70,3 +70,8 @@ bool entry::operator==(const entry& o)
 #undef MIN_ID
 #undef __MAX
 #undef __MIN
+
+size_t get_key(entry& value)
+{
+	return value.get_id();
+}

@@ -158,4 +158,26 @@ void test_heap_sort()
     }
 }
 
+void test_radix_sort()
+{
+    size_t entry_count = 1000;
+    std::vector<entry> data_set;
+
+    for (size_t i = 0; i < entry_count; ++i) {
+        data_set.push_back(entry(1, 1000));
+    }
+
+    std::cout << "BEFORE\n";
+    for (auto e : data_set) {
+        std::cout << e.get_id() << " ";
+    }
+
+    radix_sort(data_set, get_key);
+
+    std::cout << "AFTER\n";
+    for (auto e : data_set) {
+        std::cout << e.get_id() << " ";
+    }
+}
+
 #endif // _DEBUG

@@ -1,11 +1,13 @@
 #pragma once
 #include <vector>
+#include <string>
+#include <list>
 
 template<class T>
 void heap_sort(std::vector<T>& data);
 
 template<class T>
-void root_sort(std::vector<T>& data);
+void radix_sort(std::vector<T>& data, size_t(*get_key)(T& value));
 
 template<class T>
 void quick_sort(std::vector<T>& data);
@@ -95,8 +97,46 @@ inline void heap_sort(std::vector<T>& data)
 }
 
 template<class T>
-inline void root_sort(std::vector<T>& data)
+inline void radix_sort(std::vector<T>& data, size_t(*get_key)(T& value))
 {
+	if (data.size() <= 1) 
+	{
+		return;
+	}
+
+	size_t max_r = std::to_string(UINT64_MAX).length();
+	size_t base = 10;
+	std::vector<std::list<T*>> stacks(base);
+	std::vector<T> tmp(data.size());
+
+	size_t k = 1;
+	for (size_t r = 0; r < max_r; ++r) 
+	{
+
+		for (size_t i = 0; i < data.size(); ++i) 
+		{
+			stacks[get_key(data[i]) / k % 10].push_back(&data[i]);
+		}
+		k *= 10;
+
+		if (stacks[0].size() == data.size()) 
+		{
+			return;
+		}
+
+		size_t i = 0;
+		for (auto& e : stacks) 
+		{
+			while (!e.empty()) 
+			{
+				tmp[i++] = *e.front();
+				e.pop_front();
+			}
+		}
+
+		data = tmp;
+	}
+
 }
 
 template<class T>
@@ -104,7 +144,7 @@ inline void quick_sort(std::vector<T>& data)
 {
 	using namespace local;
 
-	if (data.empty()) 
+	if (data.size() <= 1)
 	{
 		return;
 	}

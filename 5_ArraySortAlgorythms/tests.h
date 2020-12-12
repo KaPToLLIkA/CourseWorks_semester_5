@@ -29,6 +29,7 @@ double getAllocatedMemorySize(double k);
 
 void test_quick_sort();
 void test_heap_sort();
+void test_radix_sort();
 
 
 #endif // _DEBUG

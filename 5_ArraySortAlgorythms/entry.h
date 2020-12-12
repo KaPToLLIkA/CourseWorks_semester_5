@@ -25,3 +25,6 @@ public:
 	bool operator>=(const entry& o);
 	bool operator==(const entry& o);
 };
+
+
+size_t get_key(entry& value);
