@@ -28,6 +28,7 @@ double getAllocatedMemorySize(double k);
 #include "entry.h"
 
 void test_quick_sort();
+void test_heap_sort();
 
 
 #endif // _DEBUG

@@ -53,7 +53,45 @@ namespace local {
 template<class T>
 inline void heap_sort(std::vector<T>& data)
 {
+	int64_t size = static_cast<int64_t>(data.size());
 
+	for (int64_t j = 0; j < size; j++)
+	{
+		for (int64_t i = size / 2 - 1 - j / 2; i > -1; i--)
+		{
+			if (2 * i + 2 <= size - 1 - j)
+			{
+				if (data[2 * i + 1] > data[2 * i + 2])
+				{
+					if (data[i] < data[2 * i + 1])
+					{
+						std::swap(data[i], data[2 * i + 1]);
+						
+					}
+				}
+				else 
+				{
+					if (data[i] < data[2 * i + 2])
+					{
+						std::swap(data[i], data[2 * i + 2]);
+
+					}
+				}
+			}
+			else 
+			{
+				if (2 * i + 1 <= size - 1 - j)
+				{
+					if (data[i] < data[2 * i + 1])
+					{
+						std::swap(data[i], data[2 * i + 1]);
+					}
+				}
+			}
+				
+		}
+		std::swap(data[0], data[size - 1 - j]);
+	}
 }
 
 template<class T>
