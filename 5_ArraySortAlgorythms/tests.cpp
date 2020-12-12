@@ -93,7 +93,6 @@ double getAllocatedMemorySize(double k)
     DWORD processID = GetCurrentProcessId();
     HANDLE hProcess;
     PROCESS_MEMORY_COUNTERS pmc;
-    APP_MEMORY_INFORMATION ami;
 
     hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
         PROCESS_VM_READ,
@@ -112,3 +111,29 @@ double getAllocatedMemorySize(double k)
     return -1;
 }
 #endif
+
+
+#ifdef _DEBUG
+void test_quick_sort()
+{
+    size_t entry_count = 1000;
+    std::vector<entry> data_set;
+
+    for (size_t i = 0; i < entry_count; ++i) {
+        data_set.push_back(entry(1, 1000));
+    }
+
+    std::cout << "BEFORE\n";
+    for (auto e : data_set) {
+        std::cout << e.get_id() << " ";
+    }
+
+    quick_sort(data_set);
+
+    std::cout << "AFTER\n";
+    for (auto e : data_set) {
+        std::cout << e.get_id() << " ";
+    }
+}
+
+#endif // _DEBUG

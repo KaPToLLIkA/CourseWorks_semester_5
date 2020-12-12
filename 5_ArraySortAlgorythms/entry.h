@@ -21,5 +21,7 @@ public:
 
 	bool operator<(const entry& o);
 	bool operator>(const entry& o);
+	bool operator<=(const entry& o);
+	bool operator>=(const entry& o);
 	bool operator==(const entry& o);
 };

@@ -51,6 +51,16 @@ bool entry::operator>(const entry& o)
 	return this->id > o.id;
 }
 
+bool entry::operator<=(const entry& o)
+{
+	return this->id <= o.id;
+}
+
+bool entry::operator>=(const entry& o)
+{
+	return this->id >= o.id;
+}
+
 bool entry::operator==(const entry& o)
 {
 	return this->id == o.id;

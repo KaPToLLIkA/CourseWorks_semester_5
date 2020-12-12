@@ -13,8 +13,21 @@
 #error "Unable to define getCPUTime( ) for an unknown OS."
 #endif
 
+
+
 double getCPUTime();
 
 #if defined(_WIN32)
 double getAllocatedMemorySize(double k);
 #endif
+
+#ifdef _DEBUG
+#include <iostream>
+
+#include "sort_algorythms.h"
+#include "entry.h"
+
+void test_quick_sort();
+
+
+#endif // _DEBUG
