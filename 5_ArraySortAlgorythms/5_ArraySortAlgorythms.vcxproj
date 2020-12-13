@@ -140,11 +140,13 @@
   <ItemGroup>
     <ClCompile Include="entry.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="operations_counter.cpp" />
     <ClCompile Include="sort_algorythms.cpp" />
     <ClCompile Include="tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="entry.h" />
+    <ClInclude Include="operations_counter.h" />
     <ClInclude Include="sort_algorythms.h" />
     <ClInclude Include="tests.h" />
   </ItemGroup>

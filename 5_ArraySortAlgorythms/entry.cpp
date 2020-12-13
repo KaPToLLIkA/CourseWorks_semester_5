@@ -43,26 +43,31 @@ char* entry::get_data()
 
 bool entry::operator<(const entry& o)
 {
+	FIX_COMPARE_OP
 	return this->id < o.id;
 }
 
 bool entry::operator>(const entry& o)
 {
+	FIX_COMPARE_OP
 	return this->id > o.id;
 }
 
 bool entry::operator<=(const entry& o)
 {
+	FIX_COMPARE_OP
 	return this->id <= o.id;
 }
 
 bool entry::operator>=(const entry& o)
 {
+	FIX_COMPARE_OP
 	return this->id >= o.id;
 }
 
 bool entry::operator==(const entry& o)
 {
+	FIX_COMPARE_OP
 	return this->id == o.id;
 }
 

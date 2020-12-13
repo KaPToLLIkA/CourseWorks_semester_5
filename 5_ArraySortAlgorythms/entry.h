@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <cmath>
-
+#include "operations_counter.h"
 
 class entry
 {

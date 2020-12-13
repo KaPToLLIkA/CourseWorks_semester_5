@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <list>
+#include "operations_counter.h"
 
 template<class T>
 void heap_sort(std::vector<T>& data);
@@ -14,12 +15,12 @@ void quick_sort(std::vector<T>& data);
 
 namespace local {
 	template<class T>
-	void quick_sort_recursive(size_t l, size_t r, std::vector<T>& data);
+	void quick_sort_recursive(int64_t l, int64_t r, std::vector<T>& data);
 
 	template<class T>
-	inline void quick_sort_recursive(size_t l, size_t r, std::vector<T>& data)
+	inline void quick_sort_recursive(int64_t l, int64_t r, std::vector<T>& data)
 	{
-		size_t i = l, j = r;
+		int64_t i = l, j = r;
 		T pivot = data[(l + r) / 2];
 
 		while (i <= j) 
@@ -36,6 +37,7 @@ namespace local {
 
 			if (i <= j) 
 			{
+				FIX_COPY_OP
 				std::swap(data[i++], data[j--]);
 			}
 		}
@@ -67,6 +69,7 @@ inline void heap_sort(std::vector<T>& data)
 				{
 					if (data[i] < data[2 * i + 1])
 					{
+						FIX_COPY_OP
 						std::swap(data[i], data[2 * i + 1]);
 						
 					}
@@ -75,6 +78,7 @@ inline void heap_sort(std::vector<T>& data)
 				{
 					if (data[i] < data[2 * i + 2])
 					{
+						FIX_COPY_OP
 						std::swap(data[i], data[2 * i + 2]);
 
 					}
@@ -86,12 +90,14 @@ inline void heap_sort(std::vector<T>& data)
 				{
 					if (data[i] < data[2 * i + 1])
 					{
+						FIX_COPY_OP
 						std::swap(data[i], data[2 * i + 1]);
 					}
 				}
 			}
 				
 		}
+		FIX_COPY_OP
 		std::swap(data[0], data[size - 1 - j]);
 	}
 }
@@ -115,6 +121,7 @@ inline void radix_sort(std::vector<T>& data, size_t(*get_key)(T& value))
 
 		for (size_t i = 0; i < data.size(); ++i) 
 		{
+			FIX_COPY_OP
 			stacks[get_key(data[i]) / k % 10].push_back(&data[i]);
 		}
 		k *= 10;
@@ -129,6 +136,7 @@ inline void radix_sort(std::vector<T>& data, size_t(*get_key)(T& value))
 		{
 			while (!e.empty()) 
 			{
+				FIX_COPY_OP
 				tmp[i++] = *e.front();
 				e.pop_front();
 			}
@@ -149,7 +157,7 @@ inline void quick_sort(std::vector<T>& data)
 		return;
 	}
 
-	quick_sort_recursive(0, data.size() - 1, data);
+	quick_sort_recursive(0, static_cast<int64_t>(data.size() - 1), data);
 }
 
 
