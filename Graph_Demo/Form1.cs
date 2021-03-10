@@ -25,6 +25,7 @@ namespace Graph_Demo
             for (int i = 1; i < nodeNames.Length; ++i)
             {
                 g.AddEdge(nodeNames[i], nodeNames[i] + " - " + nodeNames[i - 1], nodeNames[i - 1]);
+                
             }
 
             GViewer v = new GViewer();

@@ -15,31 +15,57 @@ namespace _21_NetworkGraph
 {
     public partial class MainForm : Form
     {
-        private class Way
+        private class WorkData
         {
-            public Way(Int32 time, string prevP)
+            public WorkData(string name, Int32 time, List<string> parents)
             {
                 this.Time = time;
-                this.PreviousP = prevP;
+                this.Name = name;
+                this.Parents = parents;
+            }
+
+            public Int32 Time { get; set; }
+            public string Name { get; set; }
+            public List<string> Parents { get; set; }
+        }
+
+
+        private class Way
+        {
+            public Way(string from, Int32 time, string to, string workId)
+            {
+                this.WorkId = workId;
+                this.From = from;
+                this.Time = time;
+                this.To = to;
             }
 
 
             public Int32 Time { get; set; }
-            public string PreviousP { get; set; }
+            public string To { get; set; }
+            public string From { get; set; }
+            public string WorkId { get; set; }
 
         }
 
 
         private GViewer gViewer = new GViewer();
+        
+        private Hashtable worksData = new Hashtable();
 
+        private string startingStateName = "START";
+        private string endingStateName = "FINISH";
 
-        private Hashtable workNames = new Hashtable();
-        private Hashtable nodeNames = new Hashtable();
-        private Hashtable worksFor = new Hashtable();
-        private Hashtable worksBack = new Hashtable();
-        private Hashtable visited = new Hashtable();
-        private List<string> worksWithoutParents = new List<string>();
+        private List<string> availableWorksIds = new List<string>();
+        private List<string> worksIdsWithoutChilds = new List<string>();
+        private List<string> worksIdsWithoutParents = new List<string>();
+        private List<string> worksIdsWithParentsAndChilds = new List<string>();
 
+        private Int32 lastStateNumber;
+        private List<string> allStates = new List<string>();
+        private Hashtable worksForwardBypass = new Hashtable();
+        private Hashtable worksBackwardBypass = new Hashtable();
+        
         public MainForm()
         {
             InitializeComponent();
@@ -78,125 +104,380 @@ namespace _21_NetworkGraph
             this.splitContainer1.Panel1.ResumeLayout();
         }
 
-        private void buttonCalculate_Click(object sender, EventArgs e)
+        private void rebuildGraphView()
         {
             Graph g = new Graph("Graph");
 
-            workNames.Clear();
-            nodeNames.Clear();
-            worksFor.Clear();
-            worksBack.Clear();
-
-            // fill works names
-            foreach (DataGridViewRow row in this.graphData.Rows)
+            foreach (DictionaryEntry entry in worksForwardBypass)
             {
-                if (!row.IsNewRow)
+                foreach (var way in entry.Value as List<Way>)
                 {
-                    workNames.Add(row.Cells[0].Value, row.Cells[1].Value);
+                    string title = way.Time == 0 ? "F 0" : "" + way.Time.ToString();
+                    g.AddEdge(way.From, title, way.To);
                 }
             }
-
-            // fill works info
-            foreach (DataGridViewRow row in this.graphData.Rows)
-            {
-                if (row.IsNewRow)
-                {
-                    continue;
-                }
-
-                string work = row.Cells[0].Value.ToString();
-                List<string> ids = row.Cells[3].Value.ToString().Split(',').ToList<string>();
-                ids.RemoveAll(s => String.IsNullOrEmpty(s));
-                Int32 time;
-                try
-                {
-                    time = Convert.ToInt32(row.Cells[2].Value);
-                } catch(FormatException ex)
-                {
-                    MessageBox.Show(
-                            "Time is not a number!", "ERROR",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error
-                            );
-                    return;
-                } 
-
-                foreach (var id in ids)
-                {
-                    if (!workNames.Contains(id))
-                    {
-                        MessageBox.Show(
-                            "Can't find id: " + id + " in id's column", "ERROR", 
-                            MessageBoxButtons.OK, MessageBoxIcon.Error
-                            );
-                        return;
-                    }
-
-                    if (!worksFor.Contains(work))
-                    {
-                        worksFor.Add(work, new List<Way>());
-                    }
-                    (worksFor[work] as List<Way>).Add(new Way(time, id));
-
-                    if (!worksBack.Contains(id))
-                    {
-                        worksBack.Add(id, new List<Way>());
-                    }
-                    (worksBack[id] as List<Way>).Add(new Way(time, work));
-                }
-            }
-            
-            // find initial works
-
-            foreach (var id in workNames.Keys)
-            {
-                if (!worksFor.ContainsKey(id))
-                {
-                    worksWithoutParents.Add(id as string);
-                }
-            }
-
-            // find duplicate works and create fake works
-
-            foreach (var id in worksBack.Keys)
-            {
-                //List<Way> l = worksBack[id] as List<Way>;
-                
-                
-                //while (l.Count > 1)
-                //{
-                //    l.RemoveAt(l.Count - 1);
-                //}
-            }
-
-
-            visited.Clear();
-            foreach(var p in workNames.Keys)
-            {
-                Boolean f = false;
-                visited.Add(p, f);
-            }
-
 
             gViewer.Graph = g;
         }
 
-        private void RecAddEdge(Graph g, string cur, List<Way> next)
+        private void buttonCalculate_Click(object sender, EventArgs e)
         {
-            if (next == null) return;
-            if (!Convert.ToBoolean(visited[cur]))
-            {
+            availableWorksIds.Clear();
+            worksData.Clear();
 
-            }
-            foreach(Way w in next)
+            lastStateNumber = 1;
+            worksForwardBypass.Clear();
+            worksBackwardBypass.Clear();
+            allStates.Clear();
+
+            worksIdsWithoutParents.Clear();
+            worksIdsWithoutChilds.Clear();
+            worksIdsWithParentsAndChilds.Clear();
+
+            parseTableInput();
+
+            calculateBackwForwWays();
+            rebuildGraphView();
+
+            forwardMove();
+            backwardMove();
+        }
+
+        private void parseTableInput()
+        {
+           
+
+            // fill available works ids
+            foreach (DataGridViewRow row in this.graphData.Rows)
             {
-                Edge e = new Edge(cur, w.Time.ToString(), w.PreviousP);
-                if (!g.Edges.Contains(e))
+                if (!row.IsNewRow)
                 {
-                    g.AddEdge(e.Source, e.EdgeAttr.Label, e.Target);
-                    RecAddEdge(g, w.PreviousP, (worksBack[w.PreviousP] as List<Way>));
+                    if (availableWorksIds.Contains(row.Cells[0].Value as string))
+                    {
+                        MessageBox.Show(
+                           "Duplicate ids! Id: "
+                           + row.Cells[0].Value as string
+                           + " duplicated.",
+                           "ERROR",
+                           MessageBoxButtons.OK, MessageBoxIcon.Error
+                           );
+                        return;
+                    }
+
+                    availableWorksIds.Add(row.Cells[0].Value as string);
                 }
             }
 
+            worksIdsWithoutChilds = this.availableWorksIds.ToList<string>();
+
+            // fill works info
+            foreach (DataGridViewRow row in this.graphData.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    //getting parents
+                    string workId = row.Cells[0].Value.ToString();
+                    string workName = row.Cells[1].Value.ToString();
+                    List<string> parents = row.Cells[3].Value.ToString().Split(',').ToList<string>();
+                    parents.RemoveAll(s => String.IsNullOrEmpty(s));
+
+                    //getting time
+                    Int32 time;
+                    try
+                    {
+                        time = Convert.ToInt32(row.Cells[2].Value);
+                    }
+                    catch (FormatException ex)
+                    {
+                        MessageBox.Show(
+                                "Time is not a number!", "ERROR",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error
+                                );
+                        return;
+                    }
+
+                    if (parents.Count == 0)
+                    {
+                        worksIdsWithoutParents.Add(workId);
+                    }
+                    else
+                    {
+                        //checking parents
+                        foreach (var id in parents)
+                        {
+                            if (!availableWorksIds.Contains(id))
+                            {
+                                MessageBox.Show(
+                                    "Can't find id: " + id + " in id's column", "ERROR",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error
+                                    );
+                                return;
+                            }
+                            worksIdsWithoutChilds.Remove(id);
+                        }
+                    }
+
+                    worksData.Add(workId, new WorkData(workName, time, parents));
+                }
+            }
+
+            // check the availability of final works
+            //
+            // WARN: the situation of no final work may not be possible
+            if (worksIdsWithoutChilds.Count == 0)
+            {
+                MessageBox.Show(
+                           "There must be at least one final job!",
+                           "ERROR",
+                           MessageBoxButtons.OK, MessageBoxIcon.Error
+                           );
+            }
+
+            // check the availability of initial works
+            //
+            // WARN: the situation of no initial work may not be possible
+            if (worksIdsWithoutParents.Count == 0)
+            {
+                MessageBox.Show(
+                           "There must be at least one initial job!",
+                           "ERROR",
+                           MessageBoxButtons.OK, MessageBoxIcon.Error
+                           );
+            }
+
+            // init hashtables
+            foreach (var id in availableWorksIds)
+            {
+                worksBackwardBypass.Add(id, new List<Way>());
+                worksForwardBypass.Add(id, new List<Way>());
+            }
+
+            // find work ids with childs and with parents
+            worksIdsWithParentsAndChilds = this.availableWorksIds.ToList<string>();
+            // remove final works
+            foreach (var id in worksIdsWithoutChilds)
+            {
+                if (worksIdsWithParentsAndChilds.Contains(id))
+                {
+                    worksIdsWithParentsAndChilds.Remove(id);
+                }
+            }
+            // remove initial works
+            foreach (var id in worksIdsWithoutParents)
+            {
+                if (worksIdsWithParentsAndChilds.Contains(id))
+                {
+                    worksIdsWithParentsAndChilds.Remove(id);
+                }
+            }
+        }
+
+        private void addForwardWay(Way way)
+        {
+            (worksForwardBypass[way.WorkId] as List<Way>).Add(way);
+        }
+
+        private void addBackwardWay(Way way)
+        {
+            (worksBackwardBypass[way.WorkId] as List<Way>).Add(way);
+        }
+
+        private bool filterFictitiousWorks(Way way)
+        {
+            return way.Time != 0;
+        }
+
+        private List<Way> createBidirWay(string from, Int32 time, string workId)
+        {
+            lastStateNumber++;
+            allStates.Add(lastStateNumber.ToString());
+
+            List<Way> ways = new List<Way>();
+
+            ways.Add(new Way(
+                from, time, lastStateNumber.ToString(), workId
+                ));
+
+            ways.Add(new Way(
+                lastStateNumber.ToString(), time, from, workId
+                ));
+            return ways;
+        }
+
+        private List<Way> createBidirWay(string from, Int32 time, string to, string workId)
+        {
+            allStates.Add(to);
+            List<Way> ways = new List<Way>();
+
+            ways.Add(new Way(
+                from, time, to, workId
+                ));
+
+            ways.Add(new Way(
+                to, time, from, workId
+                ));
+            return ways;
+        }
+
+        private void calculateBackwForwWays()
+        {
+            // processing initial works
+            allStates.Add(startingStateName);
+            foreach (var id in worksIdsWithoutParents)
+            {
+                var workDt = (worksData[id] as WorkData);
+                var bidirWays = createBidirWay(startingStateName, workDt.Time, id);
+
+                addForwardWay(bidirWays[0]);
+                addBackwardWay(bidirWays[1]);
+            }
+
+            // processing interim works
+            bool idWasNotProcessed = true;
+            while (idWasNotProcessed)
+            {
+                idWasNotProcessed = false;
+                foreach (var id in worksIdsWithParentsAndChilds)
+                {
+                    var workDt = (worksData[id] as WorkData);
+                    var parents = workDt.Parents;
+
+                    if (parents.Count == 1)
+                    {
+                        var prevWays = (worksForwardBypass[parents[0]] as List<Way>).FindAll(filterFictitiousWorks);
+
+                        if (prevWays.Count > 1)
+                        {
+                            MessageBox.Show(
+                               "The work was completed more than once! WId: " +
+                               parents[0],
+                               "ERROR",
+                               MessageBoxButtons.OK, MessageBoxIcon.Error
+                               );
+                        }
+                        else if (prevWays.Count == 1)
+                        {
+                            var bidirWays = createBidirWay(prevWays[0].To, workDt.Time, id);
+
+                            addForwardWay(bidirWays[0]);
+                            addBackwardWay(bidirWays[1]);
+                        } 
+                        else
+                        {
+                            idWasNotProcessed = true;
+                        }
+                    }
+                    else
+                    {
+                        // checking the availability of previous works
+                        bool available = true;
+                        foreach (var pid in parents)
+                        {
+                            var prevWays = (worksForwardBypass[parents[0]] as List<Way>).FindAll(filterFictitiousWorks);
+
+                            if (prevWays.Count > 1)
+                            {
+                                MessageBox.Show(
+                                   "The work was completed more than once! WId: " +
+                                   parents[0],
+                                   "ERROR",
+                                   MessageBoxButtons.OK, MessageBoxIcon.Error
+                                   );
+                            }
+                            else if (prevWays.Count == 0)
+                            {
+                                available = false;
+                                idWasNotProcessed = true;
+                            }
+                        }
+
+                        // building ways
+                        if (available)
+                        {
+                            lastStateNumber++;
+                            string fictitiosStateName = lastStateNumber.ToString();
+                            //building fictitious works
+                            foreach (var pid in parents)
+                            {
+                                var prevWays = (worksForwardBypass[pid] as List<Way>).FindAll(filterFictitiousWorks);
+
+                                var fictitiousBidirWays = createBidirWay(prevWays[0].To, 0, fictitiosStateName, pid);
+
+                                addForwardWay(fictitiousBidirWays[0]);
+                                addBackwardWay(fictitiousBidirWays[1]);
+                            }
+
+                            //building normal work
+                            var bidirWays = createBidirWay(fictitiosStateName, workDt.Time, id);
+
+                            addForwardWay(bidirWays[0]);
+                            addBackwardWay(bidirWays[1]);
+                        }
+                    }
+                }
+            }
+
+            // processing final works
+            foreach (var id in worksIdsWithoutChilds)
+            {
+                var workDt = (worksData[id] as WorkData);
+                var parents = workDt.Parents;
+
+                if (parents.Count == 1)
+                {
+                    var prevWays = (worksForwardBypass[parents[0]] as List<Way>).FindAll(filterFictitiousWorks);
+
+                    if (prevWays.Count > 1)
+                    {
+                        MessageBox.Show(
+                           "The work was completed more than once! WId: " +
+                           parents[0],
+                           "ERROR",
+                           MessageBoxButtons.OK, MessageBoxIcon.Error
+                           );
+                    }
+                    else if (prevWays.Count == 1)
+                    {
+                        var bidirWays = createBidirWay(prevWays[0].To, workDt.Time, endingStateName, id);
+
+                        addForwardWay(bidirWays[0]);
+                        addBackwardWay(bidirWays[1]);
+                    }
+                }
+                else
+                {
+                    lastStateNumber++;
+                    string fictitiosStateName = lastStateNumber.ToString();
+                    //building fictitious works
+                    foreach (var pid in parents)
+                    {
+                        var prevWays = (worksForwardBypass[pid] as List<Way>).FindAll(filterFictitiousWorks);
+
+                        if (prevWays.Count > 1)
+                        {
+                            MessageBox.Show(
+                               "The work was completed more than once! WId: " +
+                               parents[0],
+                               "ERROR",
+                               MessageBoxButtons.OK, MessageBoxIcon.Error
+                               );
+                        }
+                        else if (prevWays.Count == 1)
+                        {
+                            var fictitiousBidirWays = createBidirWay(prevWays[0].To, 0, fictitiosStateName, pid);
+
+                            addForwardWay(fictitiousBidirWays[0]);
+                            addBackwardWay(fictitiousBidirWays[1]);
+                        }
+                    }
+
+                    //building normal work
+                    var bidirWays = createBidirWay(fictitiosStateName, workDt.Time, endingStateName, id);
+
+                    addForwardWay(bidirWays[0]);
+                    addBackwardWay(bidirWays[1]);
+                }
+            }
         }
 
         private void forwardMove()
