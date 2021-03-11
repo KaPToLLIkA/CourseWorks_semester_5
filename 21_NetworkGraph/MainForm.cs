@@ -17,6 +17,7 @@ namespace _21_NetworkGraph
     {
         private class WorkData
         {
+            // describes the work data structure
             public WorkData(string name, Int32 time, List<string> parents)
             {
                 this.Time = time;
@@ -26,10 +27,11 @@ namespace _21_NetworkGraph
 
             public Int32 Time { get; set; }
             public string Name { get; set; }
-            public List<string> Parents { get; set; }
+            public List<string> Parents { get; set; } // work dependencies 
         }
 
 
+        // describes the way data structure
         private class Way
         {
             public Way(string from, Int32 time, string to, string workId)
@@ -42,10 +44,28 @@ namespace _21_NetworkGraph
 
 
             public Int32 Time { get; set; }
-            public string To { get; set; }
-            public string From { get; set; }
+            public string To { get; set; } // state to
+            public string From { get; set; } // state from
             public string WorkId { get; set; }
 
+        }
+
+        // describes the node data structure
+        private class Node
+        {
+            public Node(string name)
+            {
+                this.Name = name;
+                this.Forward = 0;
+                this.Backward = 0;
+                this.Difference = 0;
+
+            }
+
+            public Int32 Forward { get; set; }
+            public Int32 Backward { get; set; }
+            public Int32 Difference { get; set; }
+            public string Name { get; set; }
         }
 
 
@@ -53,19 +73,25 @@ namespace _21_NetworkGraph
         
         private Hashtable worksData = new Hashtable();
 
-        private string startingStateName = "START";
-        private string endingStateName = "FINISH";
+        private const string startingStateName = "START";
+        private const string endingStateName = "FINISH";
 
         private List<string> availableWorksIds = new List<string>();
         private List<string> worksIdsWithoutChilds = new List<string>();
         private List<string> worksIdsWithoutParents = new List<string>();
         private List<string> worksIdsWithParentsAndChilds = new List<string>();
 
+        private List<string> criticalWay = new List<string>();
+
         private Int32 lastStateNumber;
-        private List<string> allStates = new List<string>();
-        private Hashtable worksForwardBypass = new Hashtable();
-        private Hashtable worksBackwardBypass = new Hashtable();
-        
+
+        // bidirectional graph
+        private Hashtable stateInputs = new Hashtable(); //key: string("state_name") value: List<string>
+        private Hashtable stateOutputs = new Hashtable(); //key: string("state_name") value: List<string>
+        private Hashtable allStates = new Hashtable(); //key: string("state_name") value: Node
+        private Hashtable worksForwardBypass = new Hashtable(); //key: string("work_id") value: Way
+        private Hashtable worksBackwardBypass = new Hashtable(); //key: string("work_id") value: Way
+
         public MainForm()
         {
             InitializeComponent();
@@ -81,6 +107,7 @@ namespace _21_NetworkGraph
                 {"links", "Links (id, id, ...)",},
             };
 
+            
             gViewer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel1.Controls.Add(gViewer);
@@ -90,57 +117,47 @@ namespace _21_NetworkGraph
                 this.graphData.Columns.Add(columns[i,0], columns[i,1]);
             }
 
-            //example dataset
-            this.graphData.Rows.Add(new string[] {"1", "Create part 1", "5",    ""});
-            this.graphData.Rows.Add(new string[] {"2", "Create part 2", "3",    ""});
-            this.graphData.Rows.Add(new string[] {"3", "Create part 3", "10",   ""});
-            this.graphData.Rows.Add(new string[] {"4", "Make part 1",   "7",    "1"});
-            this.graphData.Rows.Add(new string[] {"5", "Make part 2",   "10",   "2"});
-            this.graphData.Rows.Add(new string[] {"6", "Make part 3",   "5",    "4,5"});
-            this.graphData.Rows.Add(new string[] {"7", "Make part 4",   "9",    "2,3"});
-            this.graphData.Rows.Add(new string[] {"8", "Final work",    "4",    "6,7"});
-            this.graphData.Rows.Add(new string[] {"9", "Testing",       "2",    "8"});
+            //example dataset (how to cook dinner)
+            this.graphData.Rows.Add(new string[] {"1", "Buy pasta",                     "10",   ""});
+            this.graphData.Rows.Add(new string[] {"2", "Buy sausages",                  "10",   ""});
+            this.graphData.Rows.Add(new string[] {"3", "Buy sauce",                     "10",   ""});
+            this.graphData.Rows.Add(new string[] {"4", "Boil the pasta",                "20",   "1"});
+            this.graphData.Rows.Add(new string[] {"5", "Boil the sausages",             "5",    "2"});
+            this.graphData.Rows.Add(new string[] {"6", "Put the pasta in a plate",      "1",    "4"});
+            this.graphData.Rows.Add(new string[] {"7", "Put the sausages in a plate",   "1",    "5"});
+            this.graphData.Rows.Add(new string[] {"8", "Add the sauce",                 "2",    "6,7,3"});
+            this.graphData.Rows.Add(new string[] {"9", "Eat it!",                       "60",   "8"});
 
             this.splitContainer1.Panel1.ResumeLayout();
         }
 
-        private void rebuildGraphView()
-        {
-            Graph g = new Graph("Graph");
-
-            foreach (DictionaryEntry entry in worksForwardBypass)
-            {
-                foreach (var way in entry.Value as List<Way>)
-                {
-                    string title = way.Time == 0 ? "F 0" : "" + way.Time.ToString();
-                    g.AddEdge(way.From, title, way.To);
-                }
-            }
-
-            gViewer.Graph = g;
-        }
-
         private void buttonCalculate_Click(object sender, EventArgs e)
         {
-            availableWorksIds.Clear();
+            
             worksData.Clear();
 
             lastStateNumber = 1;
             worksForwardBypass.Clear();
             worksBackwardBypass.Clear();
             allStates.Clear();
-
-            worksIdsWithoutParents.Clear();
-            worksIdsWithoutChilds.Clear();
-            worksIdsWithParentsAndChilds.Clear();
+            stateInputs.Clear();
+            stateOutputs.Clear();
 
             parseTableInput();
 
             calculateBackwForwWays();
-            rebuildGraphView();
 
+            worksIdsWithoutParents.Clear();
+            worksIdsWithoutChilds.Clear();
+            worksIdsWithParentsAndChilds.Clear();
+            availableWorksIds.Clear();
+
+            // finding critical way
             forwardMove();
             backwardMove();
+            calculateCriticalWay();
+
+            rebuildGraphView();
         }
 
         private void parseTableInput()
@@ -270,15 +287,19 @@ namespace _21_NetworkGraph
                     worksIdsWithParentsAndChilds.Remove(id);
                 }
             }
+
+            
         }
 
         private void addForwardWay(Way way)
         {
+            (stateOutputs[way.From] as List<string>).Add(way.WorkId);
             (worksForwardBypass[way.WorkId] as List<Way>).Add(way);
         }
 
         private void addBackwardWay(Way way)
         {
+            (stateInputs[way.From] as List<string>).Add(way.WorkId);
             (worksBackwardBypass[way.WorkId] as List<Way>).Add(way);
         }
 
@@ -290,7 +311,12 @@ namespace _21_NetworkGraph
         private List<Way> createBidirWay(string from, Int32 time, string workId)
         {
             lastStateNumber++;
-            allStates.Add(lastStateNumber.ToString());
+            if (!allStates.ContainsKey(lastStateNumber.ToString()))
+            {
+                allStates.Add(lastStateNumber.ToString(), new Node(lastStateNumber.ToString()));
+                stateOutputs[lastStateNumber.ToString()] = new List<string>();
+                stateInputs[lastStateNumber.ToString()] = new List<string>();
+            }
 
             List<Way> ways = new List<Way>();
 
@@ -306,7 +332,12 @@ namespace _21_NetworkGraph
 
         private List<Way> createBidirWay(string from, Int32 time, string to, string workId)
         {
-            allStates.Add(to);
+            if (!allStates.ContainsKey(to))
+            {
+                allStates.Add(to, new Node(to));
+                stateOutputs[to] = new List<string>();
+                stateInputs[to] = new List<string>();
+            }
             List<Way> ways = new List<Way>();
 
             ways.Add(new Way(
@@ -322,7 +353,12 @@ namespace _21_NetworkGraph
         private void calculateBackwForwWays()
         {
             // processing initial works
-            allStates.Add(startingStateName);
+            if (!allStates.ContainsKey(startingStateName))
+            {
+                allStates.Add(startingStateName, new Node(startingStateName));
+                stateOutputs[startingStateName] = new List<string>();
+                stateInputs[startingStateName] = new List<string>();
+            }
             foreach (var id in worksIdsWithoutParents)
             {
                 var workDt = (worksData[id] as WorkData);
@@ -478,17 +514,187 @@ namespace _21_NetworkGraph
                     addBackwardWay(bidirWays[1]);
                 }
             }
+
+            
+        }
+
+        private void rebuildGraphView()
+        {
+            Graph g = new Graph("Graph");
+            g.MinNodeWidth = 20;
+            g.MinNodeHeight = 20;
+
+            foreach (DictionaryEntry entry in worksForwardBypass)
+            {
+                foreach (var way in entry.Value as List<Way>)
+                {
+                    string title = way.WorkId + (way.Time == 0 ? "'" : "") + " " + way.Time.ToString();
+
+                    var sFrom = allStates[way.From] as Node;
+                    var sTo = allStates[way.To] as Node;
+
+                    string wayFrom = way.From + "(" + sFrom.Forward + ";" + sFrom.Difference + ";" + sFrom.Backward + ")";
+                    string wayTo = way.To + "(" + sTo.Forward + ";" + sTo.Difference + ";" + sTo.Backward + ")";
+                    g.AddEdge(wayFrom, title, wayTo);
+
+                }
+            }
+
+            gViewer.Graph = g;
+
+            string text = "";
+            foreach (var state in criticalWay)
+            {
+                text += "(" + state + ") => ";
+            }
+            text += "Total Lenght: " + (allStates[endingStateName] as Node).Forward;
+
+            this.textCriticalWay.Text = text;
+
         }
 
         private void forwardMove()
         {
+            Queue<string> states = new Queue<string>();
 
+            // get first nodes
+            {
+                var outWorks = stateOutputs[startingStateName] as List<string>;
+
+                foreach (var wId in outWorks)
+                {
+                    var ways = (worksForwardBypass[wId] as List<Way>)
+                        .FindAll(filterFictitiousWorks);
+                    states.Enqueue(ways[0].To);
+                }
+            }
+
+            // processing all nodes
+            while (states.Count > 0)
+            {
+                string curState = states.Dequeue();
+
+                var prevWorks = stateInputs[curState] as List<string>;
+
+                List<Int32> prevTimes = new List<Int32>();
+
+                // calculating max time
+                foreach (var work in prevWorks)
+                {
+                    var ways = (worksBackwardBypass[work] as List<Way>)
+                        .FindAll((way) => { return way.From == curState; });
+
+                    var prevNode = allStates[ways[0].To] as Node;
+
+                    prevTimes.Add(prevNode.Forward + ways[0].Time);
+                }
+
+                (allStates[curState] as Node).Forward = prevTimes.Max();
+
+                // add related nodes to queue
+                var outWorks = stateOutputs[curState] as List<string>;
+
+                foreach (var wId in outWorks)
+                {
+                    var ways = (worksForwardBypass[wId] as List<Way>)
+                        .FindAll((way) => { return way.From == curState; });
+                    
+                    foreach (var way in ways)
+                    {
+                        states.Enqueue(way.To);
+                    }
+                }
+            }
         }
 
         private void backwardMove()
         {
+            (allStates[endingStateName] as Node).Backward = (allStates[endingStateName] as Node).Forward;
 
+            Queue<string> states = new Queue<string>();
+
+            // get first nodes
+            {
+                var outWorks = stateInputs[endingStateName] as List<string>;
+
+                foreach (var wId in outWorks)
+                {
+                    var ways = (worksBackwardBypass[wId] as List<Way>)
+                        .FindAll(filterFictitiousWorks);
+                    states.Enqueue(ways[0].To);
+                }
+            }
+
+            // processing all nodes
+            while (states.Count > 0)
+            {
+                string curState = states.Dequeue();
+
+                var prevWorks = stateOutputs[curState] as List<string>;
+
+                List<Int32> prevTimes = new List<Int32>();
+
+                // calculating min time
+                foreach (var work in prevWorks)
+                {
+                    var ways = (worksForwardBypass[work] as List<Way>)
+                        .FindAll((way) => { return way.From == curState; });
+
+                    var prevNode = allStates[ways[0].To] as Node;
+
+                    prevTimes.Add(prevNode.Backward - ways[0].Time);
+                }
+
+                (allStates[curState] as Node).Backward = prevTimes.Min();
+
+                // add related nodes to queue
+                var outWorks = stateInputs[curState] as List<string>;
+
+                foreach (var wId in outWorks)
+                {
+                    var ways = (worksBackwardBypass[wId] as List<Way>)
+                        .FindAll((way) => { return way.From == curState; });
+
+                    foreach (var way in ways)
+                    {
+                        states.Enqueue(way.To);
+                    }
+                }
+            }
         }
 
+        private void calculateCriticalWay()
+        {
+            foreach (Node state in allStates.Values)
+            {
+                state.Difference = state.Backward - state.Forward;
+            }
+
+            string curState = startingStateName;
+
+            criticalWay.Add(curState);
+
+            while (curState != endingStateName)
+            {
+                var works = stateOutputs[curState] as List<string>;
+
+                foreach(var wId in works)
+                {
+                    var ways = (worksForwardBypass[wId] as List<Way>)
+                        .FindAll((way) => { 
+                            return (allStates[way.To] as Node).Difference == 0 
+                            && way.From == curState; 
+                        });
+
+                    if (ways.Count > 0)
+                    {
+                        curState = ways[0].To;
+                        break;
+                    }
+                }
+
+                criticalWay.Add(curState);
+            }
+        }
     }
 }
