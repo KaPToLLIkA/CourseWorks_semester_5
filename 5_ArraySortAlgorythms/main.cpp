@@ -11,9 +11,9 @@ int main() {
 	//test_heap_sort();
 	//test_radix_sort();
 #endif // _DEBUG
-	uint64_t sz = 2;
-	uint64_t k[] = { 9, 10 };
-	uint64_t z[] = { 1000, 10000 };
+	uint64_t sz = 1;
+	uint64_t k[] = { 4 };
+	uint64_t z[] = { 100000 };
 	uint64_t w = 20;
 
 	//quick sort
@@ -21,7 +21,8 @@ int main() {
 	std::cout
 		<< std::setw(w) << "ITEMS" << ":"
 		<< std::setw(w) << "COPY" << ":"
-		<< std::setw(w) << "COMPARE" << "\n";
+		<< std::setw(w) << "COMPARE" << ":"
+		<< std::setw(w) << "TIME" << "\n";
 	for (uint64_t i = 0; i < sz; ++i)
 	{
 		for (uint64_t x = 1; x <= k[i]; ++x)
@@ -30,18 +31,21 @@ int main() {
 			std::vector<entry> v1(x * z[i]);
 
 			RESET_OP_COUNTER
+				double start = getCPUTime();
 				quick_sort(v1);
 			std::cout
 				<< std::setw(w) << x * z[i] << ":"
 				<< std::setw(w) << GET_COPY_OP_COUNT << ":"
-				<< std::setw(w) << GET_COMPARE_OP_COUNT << "\n";
+				<< std::setw(w) << GET_COMPARE_OP_COUNT << ":"
+				<< std::setw(w) << getCPUTime() - start << "\n";
 		}
 	}
 	std::cout << "QUICK SORT SORTED\n";
 	std::cout
 		<< std::setw(w) << "ITEMS" << ":"
 		<< std::setw(w) << "COPY" << ":"
-		<< std::setw(w) << "COMPARE" << "\n";
+		<< std::setw(w) << "COMPARE" << ":"
+		<< std::setw(w) << "TIME" << "\n";
 	for (uint64_t i = 0; i < sz; ++i)
 	{
 		for (uint64_t x = 1; x <= k[i]; ++x)
@@ -54,11 +58,13 @@ int main() {
 			}
 
 			RESET_OP_COUNTER
+				double start = getCPUTime();
 				quick_sort(v1);
 			std::cout
 				<< std::setw(w) << x * z[i] << ":"
 				<< std::setw(w) << GET_COPY_OP_COUNT << ":"
-				<< std::setw(w) << GET_COMPARE_OP_COUNT << "\n";
+				<< std::setw(w) << GET_COMPARE_OP_COUNT << ":"
+				<< std::setw(w) << getCPUTime() - start << "\n";
 		}
 	}
 
@@ -73,7 +79,8 @@ int main() {
 	std::cout
 		<< std::setw(w) << "ITEMS" << ":"
 		<< std::setw(w) << "COPY" << ":"
-		<< std::setw(w) << "COMPARE" << "\n";
+		<< std::setw(w) << "COMPARE" << ":"
+		<< std::setw(w) << "TIME" << "\n";
 	for (uint64_t i = 0; i < sz; ++i)
 	{
 		for (uint64_t x = 1; x <= k[i]; ++x)
@@ -82,18 +89,21 @@ int main() {
 			std::vector<entry> v1(x * z[i]);
 
 			RESET_OP_COUNTER
+				double start = getCPUTime();
 				heap_sort(v1);
 			std::cout
 				<< std::setw(w) << x * z[i] << ":"
 				<< std::setw(w) << GET_COPY_OP_COUNT << ":"
-				<< std::setw(w) << GET_COMPARE_OP_COUNT << "\n";
+				<< std::setw(w) << GET_COMPARE_OP_COUNT << ":"
+				<< std::setw(w) << getCPUTime() - start << "\n";
 		}
 	}
 	std::cout << "HEAP SORT SORTED\n";
 	std::cout
 		<< std::setw(w) << "ITEMS" << ":"
 		<< std::setw(w) << "COPY" << ":"
-		<< std::setw(w) << "COMPARE" << "\n";
+		<< std::setw(w) << "COMPARE" << ":"
+		<< std::setw(w) << "TIME" << "\n";
 	for (uint64_t i = 0; i < sz; ++i)
 	{
 		for (uint64_t x = 1; x <= k[i]; ++x)
@@ -106,11 +116,13 @@ int main() {
 			}
 
 			RESET_OP_COUNTER
+				double start = getCPUTime();
 				heap_sort(v1);
 			std::cout
 				<< std::setw(w) << x * z[i] << ":"
 				<< std::setw(w) << GET_COPY_OP_COUNT << ":"
-				<< std::setw(w) << GET_COMPARE_OP_COUNT << "\n";
+				<< std::setw(w) << GET_COMPARE_OP_COUNT << ":"
+				<< std::setw(w) << getCPUTime() - start << "\n";
 		}
 	}
 
@@ -125,7 +137,8 @@ int main() {
 	std::cout
 		<< std::setw(w) << "ITEMS" << ":"
 		<< std::setw(w) << "COPY" << ":"
-		<< std::setw(w) << "COMPARE" << "\n";
+		<< std::setw(w) << "COMPARE" << ":"
+		<< std::setw(w) << "TIME" << "\n";
 	for (uint64_t i = 0; i < sz; ++i)
 	{
 		for (uint64_t x = 1; x <= k[i]; ++x)
@@ -134,18 +147,21 @@ int main() {
 			std::vector<entry> v1(x * z[i]);
 
 			RESET_OP_COUNTER
+				double start = getCPUTime();
 				radix_sort(v1, get_key);
 			std::cout
 				<< std::setw(w) << x * z[i] << ":"
 				<< std::setw(w) << GET_COPY_OP_COUNT << ":"
-				<< std::setw(w) << GET_COMPARE_OP_COUNT << "\n";
+				<< std::setw(w) << GET_COMPARE_OP_COUNT << ":"
+				<< std::setw(w) << getCPUTime() - start << "\n";
 		}
 	}
 	std::cout << "RADIX SORT SORTED\n";
 	std::cout
 		<< std::setw(w) << "ITEMS" << ":"
 		<< std::setw(w) << "COPY" << ":"
-		<< std::setw(w) << "COMPARE" << "\n";
+		<< std::setw(w) << "COMPARE" << ":"
+		<< std::setw(w) << "TIME" << "\n";
 	for (uint64_t i = 0; i < sz; ++i)
 	{
 		for (uint64_t x = 1; x <= k[i]; ++x)
@@ -158,11 +174,13 @@ int main() {
 			}
 
 			RESET_OP_COUNTER
+				double start = getCPUTime();
 				radix_sort(v1, get_key);
 			std::cout
 				<< std::setw(w) << x * z[i] << ":"
 				<< std::setw(w) << GET_COPY_OP_COUNT << ":"
-				<< std::setw(w) << GET_COMPARE_OP_COUNT << "\n";
+				<< std::setw(w) << GET_COMPARE_OP_COUNT << ":"
+				<< std::setw(w) << getCPUTime() - start << "\n";
 		}
 	}
 
